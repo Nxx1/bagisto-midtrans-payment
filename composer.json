@@ -1,0 +1,37 @@
+{
+  "name": "akara/bagisto-midtrans-payment",
+  "description": "Midtrans Payment Integration for Bagisto",
+  "type": "library",
+  "license": "MIT",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "N. Pratama",
+      "email": "npratama028@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "midtrans/midtrans-php": "^2.6",
+    "bagisto/bagisto": "^2.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Akara\\MidtransPayment\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Akara\\MidtransPayment\\Providers\\MidtransServiceProvider",
+        "Akara\\MidtransPayment\\Providers\\MidtransEventServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  }
+}
