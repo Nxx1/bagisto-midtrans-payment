@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 
 class InstallCommand extends Command
 {
-    protected $signature = 'midtrans:install';
+    protected $signature = 'akara:install-midtrans';
     protected $description = 'Publish Midtrans config & migrations, migrate and clear cache';
 
     public function handle()

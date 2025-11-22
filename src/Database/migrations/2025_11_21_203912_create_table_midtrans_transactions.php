@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('midtrans_transactions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('order_id')->index();
+            $table->unsignedInteger('order_id')->index();
             $table->string('midtrans_order_id')->unique()->index();
             $table->string('payment_type')->nullable();
             $table->string('bank')->nullable();
