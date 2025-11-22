@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "060a1264b314d3ea3d480039e4b37cb8",
+    "content-hash": "a416d263e8355564fd31e693e3a6342e",
     "packages": [
         {
             "name": "astrotomic/laravel-translatable",
@@ -3027,12 +3027,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/sanctum.git",
-                "reference": "2fde6eac82aa7f08eb67ef3f9b4fa2209693ecfd"
+                "reference": "f5fb373be39a246c74a060f2cf2ae2c2145b3664"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/sanctum/zipball/2fde6eac82aa7f08eb67ef3f9b4fa2209693ecfd",
-                "reference": "2fde6eac82aa7f08eb67ef3f9b4fa2209693ecfd",
+                "url": "https://api.github.com/repos/laravel/sanctum/zipball/f5fb373be39a246c74a060f2cf2ae2c2145b3664",
+                "reference": "f5fb373be39a246c74a060f2cf2ae2c2145b3664",
                 "shasum": ""
             },
             "require": {
@@ -3046,9 +3046,8 @@
             },
             "require-dev": {
                 "mockery/mockery": "^1.6",
-                "orchestra/testbench": "^9.0|^10.0",
-                "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^11.3"
+                "orchestra/testbench": "^9.15|^10.8",
+                "phpstan/phpstan": "^1.10"
             },
             "default-branch": true,
             "type": "library",
@@ -3084,7 +3083,7 @@
                 "issues": "https://github.com/laravel/sanctum/issues",
                 "source": "https://github.com/laravel/sanctum"
             },
-            "time": "2025-11-20T16:54:52+00:00"
+            "time": "2025-11-21T13:59:03+00:00"
         },
         {
             "name": "laravel/serializable-closure",
@@ -3154,12 +3153,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/socialite.git",
-                "reference": "b0bcd12d0eddda67a0ac8bac77238ef9e6f3043a"
+                "reference": "41e65d53762d33d617bf0253330d672cb95e624b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/socialite/zipball/b0bcd12d0eddda67a0ac8bac77238ef9e6f3043a",
-                "reference": "b0bcd12d0eddda67a0ac8bac77238ef9e6f3043a",
+                "url": "https://api.github.com/repos/laravel/socialite/zipball/41e65d53762d33d617bf0253330d672cb95e624b",
+                "reference": "41e65d53762d33d617bf0253330d672cb95e624b",
                 "shasum": ""
             },
             "require": {
@@ -3175,9 +3174,9 @@
             },
             "require-dev": {
                 "mockery/mockery": "^1.0",
-                "orchestra/testbench": "^4.0|^5.0|^6.0|^7.0|^8.0|^9.0|^10.0",
+                "orchestra/testbench": "^4.18|^5.20|^6.47|^7.55|^8.36|^9.15|^10.8",
                 "phpstan/phpstan": "^1.12.23",
-                "phpunit/phpunit": "^8.0|^9.3|^10.4|^11.5"
+                "phpunit/phpunit": "^8.0|^9.3|^10.4|^11.5|^12.0"
             },
             "default-branch": true,
             "type": "library",
@@ -3219,7 +3218,7 @@
                 "issues": "https://github.com/laravel/socialite/issues",
                 "source": "https://github.com/laravel/socialite"
             },
-            "time": "2025-10-27T15:38:54+00:00"
+            "time": "2025-11-21T14:00:38+00:00"
         },
         {
             "name": "laravel/tinker",
@@ -6470,12 +6469,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpseclib/phpseclib.git",
-                "reference": "816729d6a9fb78625f878c8283ff6d7cbc77db0d"
+                "reference": "88312608fa8134f56911613358503b5ece80ab45"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/816729d6a9fb78625f878c8283ff6d7cbc77db0d",
-                "reference": "816729d6a9fb78625f878c8283ff6d7cbc77db0d",
+                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/88312608fa8134f56911613358503b5ece80ab45",
+                "reference": "88312608fa8134f56911613358503b5ece80ab45",
                 "shasum": ""
             },
             "require": {
@@ -6572,7 +6571,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-10-29T05:29:33+00:00"
+            "time": "2025-11-21T13:48:33+00:00"
         },
         {
             "name": "predis/predis",
@@ -11154,7 +11153,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "bagisto/bagisto": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

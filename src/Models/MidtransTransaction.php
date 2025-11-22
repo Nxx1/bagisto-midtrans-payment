@@ -4,6 +4,7 @@ namespace Akara\MidtransPayment\Models;
 
 
 use Illuminate\Database\Eloquent\Model;
+use Webkul\Sales\Models\Order;
 
 class MidtransTransaction extends Model
 {

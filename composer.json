@@ -3,7 +3,6 @@
   "description": "Midtrans Payment Integration for Bagisto",
   "type": "library",
   "license": "MIT",
-  "version": "1.0.0",
   "authors": [
     {
       "name": "N. Pratama",
@@ -12,8 +11,7 @@
   ],
   "require": {
     "php": "^8.1",
-    "midtrans/midtrans-php": "^2.6",
-    "bagisto/bagisto": "^2.3"
+    "midtrans/midtrans-php": "^2.6"
   },
   "autoload": {
     "psr-4": {
