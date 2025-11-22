@@ -251,7 +251,14 @@ class MidtransCoreController extends Controller
                     'midtrans_order_id' => $midtransOrderId,
                     'payload' => $request->all()
                 ]);
-                return response('Order not found', 404);
+
+                return response()->json([
+                    'status' => 'failed',
+                    'code' => 404,
+                    'error' => 'order_not_found',
+                    'midtrans_order_id' => $midtransOrderId,
+                    'processed_at' => now()->toISOString(),
+                ], 404);
             }
 
             /**
@@ -353,8 +360,14 @@ class MidtransCoreController extends Controller
                 'payload' => $request->all(),
             ]);
 
-
-            return response('OK', 200);
+            return response()->json([
+                'status' => 'success',
+                'code' => 200,
+                'midtrans_order_id' => $midtransOrderId,
+                'transaction_status' => $transactionStatus,
+                'processed_at' => now()->toISOString(),
+                'message' => 'Notification processed',
+            ], 200);
         } catch (\Throwable $e) {
             Log::error('Midtrans notification handler error', [
                 'error' => $e->getMessage(),
@@ -365,7 +378,13 @@ class MidtransCoreController extends Controller
                 'payload' => $request->all(),
             ]);
 
-            return response('Error', 500);
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'error' => 'internal_error',
+                'message' => "Terjadi kesalahan pada server",
+                'processed_at' => now()->toISOString(),
+            ], 500);
         }
     }
 
