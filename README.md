@@ -39,11 +39,11 @@ MIDTRANS_CLIENT_KEY=your-client-key
 
 # Midtrans Dashboard Settings
 
-| Setting                      | URL                                            |
-| ---------------------------- | ---------------------------------------------- |
-| Payment Notification URL     | `https://yourdomain.com/midtrans/notification` |
-| Recurring Notification URL   | `https://yourdomain.com/midtrans/notification` |
-| Pay Account Notification URL | `https://yourdomain.com/midtrans/notification` |
+| Setting                      | URL                                                |
+| ---------------------------- | -------------------------------------------------- |
+| Payment Notification URL     | `https://yourdomain.com/api/midtrans/notification` |
+| Recurring Notification URL   | `https://yourdomain.com/api/midtrans/notification` |
+| Pay Account Notification URL | `https://yourdomain.com/api/midtrans/notification` |
 
 # License
 MIT License

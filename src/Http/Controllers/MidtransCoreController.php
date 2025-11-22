@@ -13,6 +13,7 @@ use Webkul\Checkout\Repositories\CartRepository;
 use Webkul\Sales\Transformers\OrderResource;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Akara\MidtransPayment\Models\MidtransNotification as MidtransNotificationModel;
 
 class MidtransCoreController extends Controller
 {
@@ -271,9 +272,17 @@ class MidtransCoreController extends Controller
                 Log::warning('Midtrans notification persist failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
             }
 
+            MidtransNotificationModel::create([
+                'midtrans_transaction_id' => $notif->transaction_id,
+                'payload' => (array) $request->all()
+            ]);
+
             return response('OK', 200);
         } catch (\Throwable $e) {
-            Log::error('Midtrans notification handler error', ['error' => $e->getMessage()]);
+            Log::error('Midtrans notification handler error', [
+                'error' => $e->getMessage(),
+                'payload' => $request->all()
+            ]);
             return response('Error', 500);
         }
     }
