@@ -267,10 +267,22 @@ class MidtransCoreController extends Controller
             $transactionData = [
                 'order_id' => $order->id,
                 'midtrans_transaction_id' => $notif->transaction_id,
+                'midtrans_order_id' => $midtransOrderId,
                 'payment_type' => $notif->payment_type ?? null,
                 'transaction_status' => $notif->transaction_status ?? null,
                 'fraud_status' => $notif->fraud_status ?? null,
+                'transaction_time' => $notif->transaction_time ?? null,
+                'status_message' => $notif->status_message ?? null,
+                'status_code' => $notif->status_code ?? null,
+                'signature_key' => $notif->signature_key ?? null,
+                'pop_id' => $notif->pop_id ?? null,
+                'merchant_id' => $notif->merchant_id ?? null,
+                'gross_amount' => $notif->gross_amount ?? null,
+                'customer_name' => $notif->customer_details['full_name'] ?? null,
+                'customer_email' => $notif->customer_details['email'] ?? null,
+                'currency' => $notif->currency ?? null,
                 'raw_response' => $request->all(),
+                'expire_time' => $notif->expiry_time ?? null,
             ];
 
             /**

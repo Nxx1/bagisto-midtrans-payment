@@ -11,20 +11,33 @@ class MidtransTransaction extends Model
     protected $fillable = [
         'order_id',
         'midtrans_order_id',
+        'midtrans_transaction_id',
         'payment_type',
+        'transaction_status',
+        'fraud_status',
+        'transaction_time',
+        'expire_time',
+        'status_message',
+        'status_code',
+        'signature_key',
+        'pop_id',
+        'merchant_id',
+        'gross_amount',
+        'currency',
+        'customer_name',
+        'customer_email',
         'bank',
         'va_number',
         'qr_string',
         'qr_url',
-        'transaction_status',
-        'fraud_status',
         'raw_response',
-        'expire_time'
     ];
 
     protected $casts = [
         'raw_response' => 'array',
-        'expire_time'  => 'datetime'
+        'transaction_time' => 'datetime',
+        'expire_time' => 'datetime',
+        'gross_amount' => 'decimal:2',
     ];
 
     public function order()
