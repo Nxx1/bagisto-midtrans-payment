@@ -240,15 +240,73 @@ class MidtransCoreController extends Controller
             $notif = new MidtransNotification();
 
             $midtransOrderId = $notif->order_id ?? null;
+            $transactionId = $notif->transaction_id ?? null;
             $transactionStatus = $notif->transaction_status ?? null;
             $fraudStatus = $notif->fraud_status ?? null;
 
             // find order by midtrans_order_id -> search in orders' channel_response or payment.additional
             $order = $this->findOrderByMidtransOrderId($midtransOrderId);
             if (!$order) {
-                Log::warning('Midtrans notification: order not found', ['midtrans_order_id' => $midtransOrderId, 'notif' => $notif]);
+                Log::warning('Midtrans notification: order not found', [
+                    'midtrans_order_id' => $midtransOrderId,
+                    'payload' => $request->all()
+                ]);
                 return response('Order not found', 404);
             }
+
+            /**
+             * UPSERT midtrans_transactions table
+             */
+            $transactionData = [
+                'order_id' => $order->id,
+                'midtrans_transaction_id' => $notif->transaction_id,
+                'payment_type' => $notif->payment_type ?? null,
+                'transaction_status' => $notif->transaction_status ?? null,
+                'fraud_status' => $notif->fraud_status ?? null,
+                'raw_response' => $request->all(),
+            ];
+
+            /**
+             * Bank Transfer VA
+             */
+            if (!empty($notif->va_numbers) && isset($notif->va_numbers[0])) {
+                $transactionData['bank'] = $notif->va_numbers[0]->bank ?? null;
+                $transactionData['va_number'] = $notif->va_numbers[0]->va_number ?? null;
+            }
+
+            /**
+             * Permata VA
+             */
+            if (!empty($notif->permata_va_number)) {
+                $transactionData['bank'] = 'permata';
+                $transactionData['va_number'] = $notif->permata_va_number;
+            }
+
+            /**
+             * QRIS (qr_string or redirect URL)
+             */
+            if (!empty($notif->qr_string)) {
+                $transactionData['qr_string'] = $notif->qr_string;
+            }
+            if (!empty($notif->actions) && isset($notif->actions[0]->url)) {
+                $transactionData['qr_url'] = $notif->actions[0]->url;
+            }
+
+            /**
+             * Expiry
+             */
+            if (!empty($notif->expiry_time)) {
+                $transactionData['expire_time'] = $notif->expiry_time;
+            }
+
+            /**
+             * FINAL UPSERT midtrans_transactions table
+             * This updates ALL columns deterministically.
+             */
+            $transaction = \Akara\MidtransPayment\Models\MidtransTransaction::updateOrCreate(
+                ['midtrans_order_id' => $midtransOrderId],
+                $transactionData
+            );
 
             // Map statuses
             if ($transactionStatus === 'capture' && $fraudStatus === 'accept') {
@@ -261,28 +319,52 @@ class MidtransCoreController extends Controller
                 $this->orderRepository->update(['status' => 'canceled'], $order->id);
             }
 
-            // Save notification raw to payment.additional.midtrans.notifications array
+            /**
+             * Store in order.payment.additional
+             */
             try {
                 $payment = $order->payment;
-                $additional = (array) json_decode($payment->additional ?? 'null', true) ?? [];
-                $additional['midtrans']['notifications'][] = (array) $notif;
+                $additional = json_decode($payment->additional ?? '{}', true);
+
+                if (!isset($additional['midtrans']['notifications'])) {
+                    $additional['midtrans']['notifications'] = [];
+                }
+
+                $additional['midtrans']['notifications'][] = $request->all();
+
                 $payment->additional = json_encode($additional);
                 $payment->save();
             } catch (\Throwable $e) {
-                Log::warning('Midtrans notification persist failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+                Log::warning('Midtrans notification persist failed', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
             }
 
+            /**
+             * Persist into midtrans_notifications table
+             */
             MidtransNotificationModel::create([
-                'midtrans_transaction_id' => $notif->transaction_id,
-                'payload' => (array) $request->all()
+                'midtrans_transaction_id' => $transaction->id,
+                'payload' => $request->all(),
             ]);
+
 
             return response('OK', 200);
         } catch (\Throwable $e) {
             Log::error('Midtrans notification handler error', [
                 'error' => $e->getMessage(),
-                'payload' => $request->all()
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'payload' => $request->all(),
             ]);
+
             return response('Error', 500);
         }
     }
@@ -293,25 +375,13 @@ class MidtransCoreController extends Controller
             return null;
         }
 
-        // Try to find in orders table channel_response
-        $order = $this->orderRepository->findWhere(['channel_response' => json_encode(['midtrans' => ['midtrans_order_id' => $midtransOrderId]])])->first();
-        if ($order) {
-            return $order;
+        $trx = \Akara\MidtransPayment\Models\MidtransTransaction::where('midtrans_order_id', $midtransOrderId)->first();
+
+        if (!$trx) {
+            return null;
         }
 
-        // fallback: search payments.additional JSON using SQL LIKE (simple)
-        $orders = $this->orderRepository->findWhere(['id' => '!=', '1' => '1']); // placeholder to get builder - but repositories vary. Simpler: query DB
-        $result = \DB::table('orders')->where('channel_response', 'like', '%' . $midtransOrderId . '%')->first();
-        if ($result) {
-            return $this->orderRepository->find($result->id);
-        }
-
-        $paymentRow = \DB::table('payments')->where('additional', 'like', '%' . $midtransOrderId . '%')->first();
-        if ($paymentRow) {
-            return $this->orderRepository->find($paymentRow->order_id);
-        }
-
-        return null;
+        return $this->orderRepository->find($trx->order_id);
     }
 
     /**
