@@ -87,6 +87,22 @@ class MidtransPayment extends Payment
                 'response' => json_encode($response),
             ]);
 
+
+            // Deactivate cart after order creation
+            try {
+                Cart::deActivateCart();  // ← Use facade instead of repository
+                Log::info('Cart deactivated after order creation', [
+                    'order_id' => $order->id,
+                    'cart_id' => $cart->id,
+                ]);
+            } catch (Throwable $e) {
+                Log::warning('Failed to deactivate cart', [
+                    'order_id' => $order->id,
+                    'cart_id' => $cart->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return $response;
         } catch (Throwable $e) {
             Log::error('Midtrans Payment Redirect Failure', [
@@ -139,7 +155,7 @@ class MidtransPayment extends Payment
                 'id' => 'adjustment',
                 'price' => $difference,
                 'quantity' => 1,
-                'name' => 'Adjustment',
+                'name' => 'Service Fee',
             ];
         }
 

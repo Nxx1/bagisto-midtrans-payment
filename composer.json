@@ -3,6 +3,7 @@
   "description": "Midtrans Payment Integration for Bagisto",
   "type": "library",
   "license": "MIT",
+  "version": "1.0.5",
   "authors": [
     {
       "name": "N. Pratama",

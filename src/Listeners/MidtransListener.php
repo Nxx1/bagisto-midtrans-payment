@@ -4,6 +4,8 @@ namespace Akara\MidtransPayment\Listeners;
 
 use Log;
 use Webkul\Checkout\Facades\Cart;
+use Webkul\Sales\Models\Invoice;
+use Webkul\Sales\Models\Order;
 use Webkul\Sales\Repositories\InvoiceRepository;
 use Webkul\Sales\Repositories\OrderRepository;
 
@@ -32,16 +34,6 @@ class MidtransListener
     public function handle($order)
     {
         Log::info("Order Listener Data", $order->jsonSerialize());
-
-        if ($order->payment->method == 'midtrans') {
-            Cart::removeCart($order->cart);
-
-            $this->invoiceRepository->create(
-                data: $this->prepareInvoiceData($order),
-                invoiceState: core()->getConfigData('sales.payment_methods.midtrans.invoice_status'),
-                orderState: core()->getConfigData('sales.payment_methods.midtrans.order_status')
-            );
-        }
     }
 
     /**

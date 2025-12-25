@@ -7,6 +7,8 @@ use Illuminate\Routing\Controller;
 use Midtrans\Config;
 use Midtrans\CoreApi;
 use Midtrans\Notification as MidtransNotification;
+use Webkul\Sales\Models\Invoice;
+use Webkul\Sales\Models\Order;
 use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Checkout\Helpers\Cart as CartHelper;
 use Webkul\Checkout\Repositories\CartRepository;
@@ -14,12 +16,14 @@ use Webkul\Sales\Transformers\OrderResource;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Akara\MidtransPayment\Models\MidtransNotification as MidtransNotificationModel;
+use Webkul\Sales\Repositories\InvoiceRepository;
 
 class MidtransCoreController extends Controller
 {
     public function __construct(
         protected OrderRepository $orderRepository,
-        protected CartRepository $cartRepository
+        protected CartRepository $cartRepository,
+        protected InvoiceRepository $invoiceRepository
     ) {
     }
 
@@ -54,6 +58,10 @@ class MidtransCoreController extends Controller
         // Create order from cart (same as Xendit approach)
         $data = (new OrderResource($cart))->jsonSerialize();
         $order = $this->orderRepository->create($data);
+        $this->orderRepository->update([
+            'status' => Order::STATUS_PENDING_PAYMENT,
+        ], $order->id);
+        dd($order);
 
         // Clear cart
         try {
@@ -182,7 +190,7 @@ class MidtransCoreController extends Controller
                 'id' => 'adjustment',
                 'price' => $difference,
                 'quantity' => 1,
-                'name' => 'Adjustment'
+                'name' => 'Service Fee'
             ];
         }
 
@@ -244,6 +252,19 @@ class MidtransCoreController extends Controller
             $transactionStatus = $notif->transaction_status ?? null;
             $fraudStatus = $notif->fraud_status ?? null;
 
+            $expectedSignature = hash(
+                'sha512',
+                $midtransOrderId .
+                $notif->status_code .
+                $notif->gross_amount .
+                Config::$serverKey
+            );
+
+            if (!hash_equals($expectedSignature, $notif->signature_key)) {
+                abort(403, 'Invalid Midtrans signature');
+            }
+
+
             // find order by midtrans_order_id -> search in orders' channel_response or payment.additional
             $order = $this->findOrderByMidtransOrderId($midtransOrderId);
             if (!$order) {
@@ -266,7 +287,6 @@ class MidtransCoreController extends Controller
              */
             $transactionData = [
                 'order_id' => $order->id,
-                'midtrans_transaction_id' => $notif->transaction_id,
                 'midtrans_order_id' => $midtransOrderId,
                 'payment_type' => $notif->payment_type ?? null,
                 'transaction_status' => $notif->transaction_status ?? null,
@@ -327,15 +347,101 @@ class MidtransCoreController extends Controller
                 $transactionData
             );
 
-            // Map statuses
-            if ($transactionStatus === 'capture' && $fraudStatus === 'accept') {
-                $this->orderRepository->update(['status' => 'processing'], $order->id);
-            } elseif ($transactionStatus === 'settlement') {
-                $this->orderRepository->update(['status' => 'processing'], $order->id);
-            } elseif ($transactionStatus === 'pending') {
-                $this->orderRepository->update(['status' => 'pending'], $order->id);
-            } elseif (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
-                $this->orderRepository->update(['status' => 'canceled'], $order->id);
+            // Reload order with relations (important)
+            $order = $this->orderRepository
+                ->with(['items', 'invoices'])
+                ->find($order->id);
+            $invoice = $order->invoices->first();
+
+            /**
+             * PAID STATES (capture+accept OR settlement)
+             */
+            if (
+                ($transactionStatus === 'capture' && $fraudStatus === 'accept')
+                || $transactionStatus === 'settlement'
+            ) {
+                // Always move order to processing
+                $this->orderRepository->update(
+                    ['status' => Order::STATUS_PROCESSING],
+                    $order->id
+                );
+
+                /**
+                 * CREATE invoice only once
+                 */
+                if (!$invoice) {
+                    $this->invoiceRepository->create(
+                        data: $this->prepareInvoiceData($order),
+                        invoiceState: Invoice::STATUS_PAID,
+                        orderState: Order::STATUS_PROCESSING
+                    );
+                } else {
+                    $this->invoiceRepository->updateState(
+                        $invoice,
+                        Invoice::STATUS_PAID
+                    );
+                }
+            }
+
+            /**
+             * PENDING
+             */ elseif ($transactionStatus === 'pending') {
+                $this->orderRepository->update(
+                    ['status' => Order::STATUS_PENDING_PAYMENT],
+                    $order->id
+                );
+
+                if (!$invoice) {
+                    $this->invoiceRepository->create(
+                        data: $this->prepareInvoiceData($order),
+                        invoiceState: Invoice::STATUS_PENDING_PAYMENT,
+                        orderState: Order::STATUS_PENDING_PAYMENT
+                    );
+                } else {
+                    $this->invoiceRepository->updateState(
+                        $invoice,
+                        Invoice::STATUS_PENDING_PAYMENT
+                    );
+                }
+            }
+
+            /**
+             * FAILED / EXPIRED
+             */ elseif (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
+                $this->orderRepository->cancel($order);
+                $this->orderRepository->update(
+                    ['status' => Order::STATUS_CANCELED],
+                    $order->id
+                );
+
+                // Delete any existing invoices
+                if ($invoice) {
+                    $invoice->delete();
+                    Log::info('Invoice deleted for canceled order', [
+                        'invoice_id' => $invoice->id,
+                        'order_id' => $order->id,
+                        'reason' => $transactionStatus,
+                    ]);
+                }
+            }
+
+            /**
+             * FRAUD OVERRIDE
+             */ elseif ($fraudStatus && $fraudStatus !== 'accept') {
+                $this->orderRepository->cancel($order);
+                $this->orderRepository->update(
+                    ['status' => Order::STATUS_FRAUD],
+                    $order->id
+                );
+                // Delete any existing invoices
+                if ($invoice) {
+                    $invoice->delete();
+                    Log::info('Invoice deleted for fraud order', [
+                        'invoice_id' => $invoice->id,
+                        'order_id' => $order->id,
+                        'reason' => $transactionStatus,
+                    ]);
+                }
             }
 
             /**
@@ -440,4 +546,26 @@ class MidtransCoreController extends Controller
             'last_response' => $lastResponse,
         ]);
     }
+
+
+    protected function prepareInvoiceData($order)
+    {
+        $invoiceData = [
+            'order_id' => $order->id,
+            'invoice' => [
+                'items' => []
+            ]
+        ];
+
+        foreach ($order->items as $item) {
+            $qty = $item->qty_ordered - $item->qty_invoiced;
+
+            if ($qty > 0) {
+                $invoiceData['invoice']['items'][$item->id] = $qty;
+            }
+        }
+
+        return $invoiceData;
+    }
+
 }
